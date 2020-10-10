@@ -1,5 +1,5 @@
 clear;
-data = readtable("E:\2020\ME5312\testData.csv");
+data = readtable("E:\2020\ME5312\MSP_Data.csv");
 
 %to calculate monthly average daily solar irradiation,
 %GHI for each day of each month must be totaled
@@ -37,3 +37,25 @@ for row_num = 1:L
 end
 avg = meas_sum/num_meas;
 dailyAvgs = [dailyAvgs, avg];
+
+H = []; %%initialize array for montly daily average
+
+DOY = 1;
+lastAvg = 0;
+monthTracker = 1;
+dayTracker = 0;
+runningAvg = 0;
+for avg_num = 1:length(dailyAvgs)    
+        runningAvg = runningAvg+dailyAvgs(avg_num);
+        if dayTracker == DPM(monthTracker)
+            monthlyDailyAvg = runningAvg/DPM(monthTracker);
+            runningAvg = 0;
+            dayTracker = 0;
+            H = [H, monthlyDailyAvg];
+            monthTracker = monthTracker+1;
+        end
+        dayTracker = dayTracker+1;
+end
+monthlyDailyAvg = runningAvg/DPM(monthTracker);
+H = [H, monthlyDailyAvg];
+
