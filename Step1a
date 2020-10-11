@@ -1,0 +1,78 @@
+clear;
+data = readtable("C:\Users\nickd\OneDrive\Documents\MATLAB\ME5312\MSP_Data.csv");
+
+%to calculate monthly average daily solar irradiation,
+%GHI for each day of each month must be totaled
+%to do this we need to add up GHI over every day of each month
+month = data.Month;                 %array of months
+day = data.Day;                     %array of days
+GHI = data.GHI;                     %array of GHI data
+lastD = 1;                          %updating value to keep track of last day
+D = 1;                              %updating value for current day
+num_meas = 0;                       %# of measurements so far
+meas_sum = 0;                       %sum of measurements so far
+dailyAvgs = [];                     %array of daily average GHI
+L = length(day);                    %length of csv file
+
+DPM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; %days per month
+
+%iterate down every row of file
+for row_num = 1:L
+    %get day of month from data
+    D = day(row_num);
+    %is this row from the same day as the last one
+    if D ~= lastD %if not, average GHI measurements, add to array, reset measurement sums
+        avg = meas_sum/num_meas;
+        meas_sum = 0;
+        num_meas = 0;
+        dailyAvgs = [dailyAvgs, avg];
+    end
+    %if it is the same day still
+    if GHI(row_num) > 0 %if GHI data is 0 (nighttime) skip measurement
+        num_meas = num_meas+1; %keep track of # of measurements per day
+        meas_sum = meas_sum+GHI(row_num); %add to a running GHI todal
+    end
+    lastD = D; %set last day to current day
+
+end
+avg = meas_sum/num_meas;
+dailyAvgs = [dailyAvgs, avg];
+
+Hbar = []; %%initialize array for montly daily average
+
+DOY = 1;
+lastAvg = 0;
+monthTracker = 1;
+dayTracker = 0;
+runningAvg = 0;
+for avg_num = 1:length(dailyAvgs)    
+        runningAvg = runningAvg+dailyAvgs(avg_num);
+        if dayTracker == DPM(monthTracker)
+            monthlyDailyAvg = runningAvg/DPM(monthTracker);
+            runningAvg = 0;
+            dayTracker = 0;
+            Hbar = [Hbar, monthlyDailyAvg];
+            monthTracker = monthTracker+1;
+        end
+        dayTracker = dayTracker+1;
+end
+monthlyDailyAvg = runningAvg/DPM(monthTracker);
+Hbar = [Hbar, monthlyDailyAvg];
+% Convert Hbar data from W/m^2 to MJ/m^2
+for i = 1:length(Hbar)
+    Hbar(i) = .0036*Hbar(i);
+end
+
+% Gather average n and declination to calculate Hbar_o and clearness index
+n_avg = [17,47,75,105,135,162,198,228,258,288,318,344];
+dec = [-20.9,-13,-2.4,9.4,18.8,23.1,21.2,13.5,2.2,-9.6,-18.9,-23]; % From tables
+sunsetangle = zeros(1,length(dec));
+Hbar_o = zeros(1,length(dec));
+Kbar_T = zeros(1,length(dec));
+lat = 44.99;
+for i = 1:length(n_avg)
+    sunsetangle(i) = acosd(-tand(dec(i))*tand(lat));
+    Hbar_o(i) = 10^(-6)*((24*3600*1367)/pi)*(1 + 0.033*cosd((360*n_avg(i))/365))*(cosd(lat)*cosd(dec(i))*sind(sunsetangle(i)) + ((pi*sunsetangle(i))/180)*sind(lat)*sind(dec(i)));
+    Hbar_o(i) = Hbar_o(i)/DPM(i);
+    Kbar_T(i) = Hbar(i)/Hbar_o(i);
+end
