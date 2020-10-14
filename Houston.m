@@ -93,7 +93,7 @@ for i = 1:length(Hbar)
     Hbar_b(i) = Hbar(i) - Hbar_d(i); % Calculate Hbar_b
 end
 
-slope = [0:10:90];
+slope = [0,10,20,29.76,40,50,60,70,80,90];
 reflectance = [0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2];
 
 Hbar_T = zeros(length(slope),length(Hbar));
@@ -102,7 +102,12 @@ Hbar_dT = Hbar_T;
 R_bar_b = Hbar_T;
 for i = 1:length(slope)
     for j = 1:length(Hbar) % Calculate Hbar_T with the Rbar_b value in the book. 
-        R_bar_b(i,j) = (cosd(lat-slope(i))*cosd(dec(j))*sind(sunsetangle(j)) + (pi/180)*sunsetangle(j)*sind(lat - slope(i))*sind(dec(j)))/(cosd(lat)*cosd(dec(j))*sind(sunsetangle(j)) + (pi/180)*sunsetangle(j)*sind(lat)*sind(dec(j)));
+        if acosd(-tand(lat - slope(i))*tand(dec(j))) < sunsetangle(j)
+            sunsetprime = acosd(-tand(lat - slope(i))*tand(dec(j)));
+        else
+            sunsetprime = sunsetangle(j);
+        end
+        R_bar_b(i,j) = (cosd(lat-slope(i))*cosd(dec(j))*sind(sunsetprime) + (pi/180)*sunsetprime*sind(lat - slope(i))*sind(dec(j)))/(cosd(lat)*cosd(dec(j))*sind(sunsetangle(j)) + (pi/180)*sunsetangle(j)*sind(lat)*sind(dec(j)));
         Hbar_T(i,j) = Hbar_b(j)*R_bar_b(i,j) + Hbar_d(j)*((1 + cosd(slope(i)))/2) + Hbar(j)*reflectance(j)*((1 - cosd(slope(i)))/2);
         Hbar_bT(i,j) = Hbar_b(j)*R_bar_b(i,j);
         Hbar_dT(i,j) = Hbar_d(j)*((1 + cosd(slope(i)))/2);
@@ -210,30 +215,31 @@ end
 
 
 %% Plots
-months = [1,2,3,4,5,6,7,8,9,10,11,12];
-figure(1);
-plot(months,Hbar_T)
-legend(['0' char(176)],['10' char(176)],['20' char(176)],['30' char(176)],['40' char(176)],['50' char(176)],['60' char(176)],['70' char(176)],['80' char(176)],['90' char(176)]);
-legend('Location','Northwest')
-set(gca,'XMinorTick','on','YMinorTick','on')
-xlabel('\fontname{Times}Average Daily Monthly Radiation [MJ/m^2]','FontSize',12)
-ylabel('\fontname{Times}Month','FontSize',12)
+% months = [1,2,3,4,5,6,7,8,9,10,11,12];
+% figure(1);
+% plot(months,Hbar_T(3,:))
+% figure(2);
+% plot(months,Hbar_T(4,:))
+% set(gca,'XMinorTick','on','YMinorTick','on')
+% ylabel('\fontname{Times}Average Daily Monthly Radiation [MJ/m^2]','FontSize',12)
+% xlabel('\fontname{Times}Month','FontSize',12)
 
-
-figure(2);
-hold on;
-hours = [5,6,7,8,9,10,11,12,13,14,15,16,17,18,19];
-% Add zeros for the days that were shorter than the equinox
-zero = [0];
-IM = [0,IM,0];
-IS = [0,IS,0];
-ID = [0,0,ID,0,0];
-plot(hours,ID)
-plot(hours,IJ)
-plot(hours,IM)
-plot(hours,IS)
-legend('Winter Solstice','Summer Solstice', 'March Equinox','September Equinox')
-legend('Location','Northwest')
-set(gca,'XMinorTick','on','YMinorTick','on')
-xlabel('\fontname{Times}Average Hourly Radiation [MJ/m^2]','FontSize',12)
-ylabel('\fontname{Times}Hour','FontSize',12)
+sum20deg = sum(Hbar_T(3,:));
+sum30deg = sum(Hbar_T(4,:));
+% figure(2);
+% hold on;
+% hours = [5,6,7,8,9,10,11,12,13,14,15,16,17,18,19];
+% % Add zeros for the days that were shorter than the equinox
+% zero = [0];
+% IM = [0,IM,0];
+% IS = [0,IS,0];
+% ID = [0,0,ID,0,0];
+% plot(hours,ID)
+% plot(hours,IJ)
+% plot(hours,IM)
+% plot(hours,IS)
+% legend('Winter Solstice','Summer Solstice', 'March Equinox','September Equinox')
+% legend('Location','Northwest')
+% set(gca,'XMinorTick','on','YMinorTick','on')
+% xlabel('\fontname{Times}Average Hourly Radiation [MJ/m^2]','FontSize',12)
+% ylabel('\fontname{Times}Hour','FontSize',12)
