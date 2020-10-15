@@ -93,7 +93,7 @@ for i = 1:length(Hbar)
     Hbar_b(i) = Hbar(i) - Hbar_d(i); % Calculate Hbar_b
 end
 
-slope = [0,10,20,29.76,40,50,60,70,80,90];
+slope = [0,10,20,29.76,40];
 reflectance = [0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2];
 
 Hbar_T = zeros(length(slope),length(Hbar));
@@ -116,130 +116,116 @@ end
 
 %% Equinoxes and solstices: 20 March, 21 June, 23 September, 21 December
 
-March20 = find(data.Month == 3 & data.Day == 20);
-IM = [];
-June21 = find(data.Month == 6 & data.Day == 21);
-IJ = [];
-September23 = find(data.Month == 9 & data.Day == 23);
-IS = [];
-December21 = find(data.Month == 12 & data.Day == 21);
-ID = [];
+HMarch20 = dailyAvgs(79);
+HJune21 = dailyAvgs(172);
+HSeptember23 = dailyAvgs(266);
+HDecember21 = dailyAvgs(355);
+n_day = [79,172,266,355];
+for i = 1:length(n_day)
+    dec(i) = 23.45*sind(360*((284+ n_day(i))/365));
+    sunset(i) = acosd(-tand(dec(i))*tand(lat));
+    leng(i) = (2/15)*sunset(i);
+end
+marchhour = [-89.5384,-82.5,-67.5,-52.5,-37.5,-22.5,-7.5,7.5,22.5,37.5,52.5,67.5,82.5,89.5384];
+junehour = [-104.36,-97.5,-82.5,-67.5,-52.5,-37.5,-22.5,-7.5,7.5,22.5,37.5,52.5,67.5,82.5,97.5,104.36];
+septemberhour = [-89.42,-82.5,-67.5,-52.5,-37.5,-22.5,-7.5,7.5,22.5,37.5,52.5,67.5,82.5,89.42];
+decemberhour = [-75.64,-67.5,-52.5,-37.5,-22.5,-7.5,7.5,22.5,37.5,52.5,67.5,75.64];
 
-hourtracker = 0;
-tracker = 0;
-append = [];
-for i = 1:length(March20)
-    if data.GHI(March20(i)) > 0 || data.GHI(March20(i) -1) > 0 
-        append = [append, March20(i)];
-        if March20(i) == 3758
-            IM = [IM,.0036*(data.GHI(March20(i))/2)];
-        else
-            tracker = GHI(March20(i)) + tracker;
-            if hourtracker == 1
-               hourtracker = 0;
-               tracker = (tracker/2)*.0036;
-               IM = [IM, tracker];
-               tracker = 0;
-            else
-            hourtracker = hourtracker + 1;
-            end
-         end
-    end
+for i = 1:length(marchhour)
+    r_t_march(i) = (pi/24)*((0.409 + 0.5016*sind(sunset(1) - 60)) + ((0.6609 - 0.4767*sind(sunset(1) - 60))*cosd(marchhour(i))))*((cosd(marchhour(i)) - cosd(sunset(1)))/(sind(sunset(1)) - ((pi*sunset(1))/180)*cosd(sunset(1))));
+    I_march(i) = (HMarch20*.0036*leng(1))*r_t_march(i);
+    % Take K_bar_T values from each month and say assume they are same for
+    % specific day
+    H_d_march =  Kbar_T(3)*HMarch20*.0036*leng(1);
+    I_d_march(i) = ((pi/24)*((cosd(marchhour(i)) - cosd(sunset(1)))/(sind(sunset(1)) - ((pi*sunset(1))/180)*cosd(sunset(1)))))*H_d_march;
+    I_b_march(i) = I_march(i) - I_d_march(i);
 end
 
-hourtracker = 0;
-tracker = 0;
-append = [];
-for i = 1:length(June21)
-    if data.GHI(June21(i)) > 0 || data.GHI(June21(i) -1) > 0 
-        append = [append, June21(i)];
-        if June21(i) == 8220
-            IJ = [IJ,.0036*(data.GHI(June21(i))/2)];
-        else
-            tracker = GHI(June21(i)) + tracker;
-            if hourtracker == 1
-               hourtracker = 0;
-               tracker = (tracker/2)*.0036;
-               IJ = [IJ, tracker];
-               tracker = 0;
-            else
-            hourtracker = hourtracker + 1;
-            end
-         end
-    end
+for i = 1:length(septemberhour)
+    r_t_sept(i) = (pi/24)*((0.409 + 0.5016*sind(sunset(3) - 60)) + ((0.6609 - 0.4767*sind(sunset(3) - 60))*cosd(septemberhour(i))))*((cosd(septemberhour(i)) - cosd(sunset(3)))/(sind(sunset(3)) - ((pi*sunset(3))/180)*cosd(sunset(3))));
+    I_sept(i) = (HSeptember23*.0036*leng(3))*r_t_sept(i);
+    H_d_september =  Kbar_T(9)*HSeptember23*.0036*leng(3);
+    I_d_sept(i) = ((pi/24)*((cosd(septemberhour(i)) - cosd(sunset(3)))/(sind(sunset(3)) - ((pi*sunset(3))/180)*cosd(sunset(3)))))*H_d_september;
+    I_b_sept(i) = I_sept(i) - I_d_sept(i);
 end
-
-hourtracker = 0;
-tracker = 0;
-append = [];
-for i = 1:length(September23)
-    if data.GHI(September23(i)) > 0 || data.GHI(September23(i) -1) > 0 
-        append = [append, September23(i)];
-        if September23(i) == 12734
-            IS = [IS,.0036*(data.GHI(September23(i))/2)];
-        else
-            tracker = GHI(September23(i)) + tracker;
-            if hourtracker == 1
-               hourtracker = 0;
-               tracker = (tracker/2)*.0036;
-               IS = [IS, tracker];
-               tracker = 0;
-            else
-            hourtracker = hourtracker + 1;
-            end
-         end
-    end
+for i = 1:length(junehour)
+    r_t_june(i) = (pi/24)*((0.409 + 0.5016*sind(sunset(2) - 60)) + ((0.6609 - 0.4767*sind(sunset(2) - 60))*cosd(junehour(i))))*((cosd(junehour(i)) - cosd(sunset(2)))/(sind(sunset(2)) - ((pi*sunset(3))/180)*cosd(sunset(2))));
+    I_june(i) = (HJune21*.0036*leng(2))*r_t_june(i);
+    H_d_june =  Kbar_T(6)*HJune21*.0036*leng(2);
+    I_d_june(i) = ((pi/24)*((cosd(junehour(i)) - cosd(sunset(2)))/(sind(sunset(2)) - ((pi*sunset(2))/180)*cosd(sunset(2)))))*H_d_june;
+    I_b_june(i) = I_june(i) - I_d_june(i);
 end
-
-hourtracker = 0;
-tracker = 0;
-append = [];
-for i = 1:length(December21)
-    if data.GHI(December21(i)) > 0 || data.GHI(December21(i) -1) > 0 
-        append = [append, December21(i)];
-        if December21(i) == 17008 
-            ID = [ID,.0036*(data.GHI(December21(i))/2)];
-        else
-            tracker = GHI(December21(i)) + tracker;
-            if hourtracker == 1
-               hourtracker = 0;
-               tracker = (tracker/2)*.0036;
-               ID = [ID, tracker];
-               tracker = 0;
-            else
-            hourtracker = hourtracker + 1;
-            end
-         end
-    end
+for i = 1:length(decemberhour)
+    r_t_dec(i) = (pi/24)*((0.409 + 0.5016*sind(sunset(4) - 60)) + ((0.6609 - 0.4767*sind(sunset(4) - 60))*cosd(decemberhour(i))))*((cosd(decemberhour(i)) - cosd(sunset(4)))/(sind(sunset(4)) - ((pi*sunset(4))/180)*cosd(sunset(4))));
+    I_dec(i) = (HDecember21*.0036*leng(4))*r_t_dec(i);
+    H_d_dec =  Kbar_T(12)*HDecember21*.0036*leng(4);
+    I_d_dec(i) = ((pi/24)*((cosd(decemberhour(i)) - cosd(sunset(4)))/(sind(sunset(4)) - ((pi*sunset(4))/180)*cosd(sunset(4)))))*H_d_dec;
+    I_b_dec(i) = I_dec(i) - I_d_dec(i);
 end
 
 
 %% Plots
-% months = [1,2,3,4,5,6,7,8,9,10,11,12];
-% figure(1);
-% plot(months,Hbar_T(3,:))
-% figure(2);
-% plot(months,Hbar_T(4,:))
-% set(gca,'XMinorTick','on','YMinorTick','on')
-% ylabel('\fontname{Times}Average Daily Monthly Radiation [MJ/m^2]','FontSize',12)
-% xlabel('\fontname{Times}Month','FontSize',12)
+months = [1,2,3,4,5,6,7,8,9,10,11,12];
+figure(1);
+plot(months,Hbar_T)
+set(gca,'XMinorTick','on','YMinorTick','on')
+ylabel('\fontname{Times}Average Daily Monthly Radiation [MJ/m^2]','FontSize',12)
+xlabel('\fontname{Times}Month','FontSize',12);
+xlim([1 12])
+title('\fontname{Times}Average Daily Monthly Radiation in Houston')
+legend(['0' char(176)],['10' char(176)],['20' char(176)],['29.76' char(176)],['40' char(176)]);
 
-sum20deg = sum(Hbar_T(3,:));
-sum30deg = sum(Hbar_T(4,:));
-% figure(2);
-% hold on;
-% hours = [5,6,7,8,9,10,11,12,13,14,15,16,17,18,19];
-% % Add zeros for the days that were shorter than the equinox
-% zero = [0];
-% IM = [0,IM,0];
-% IS = [0,IS,0];
-% ID = [0,0,ID,0,0];
-% plot(hours,ID)
-% plot(hours,IJ)
-% plot(hours,IM)
-% plot(hours,IS)
-% legend('Winter Solstice','Summer Solstice', 'March Equinox','September Equinox')
-% legend('Location','Northwest')
-% set(gca,'XMinorTick','on','YMinorTick','on')
-% xlabel('\fontname{Times}Average Hourly Radiation [MJ/m^2]','FontSize',12)
-% ylabel('\fontname{Times}Hour','FontSize',12)
+figure(2);
+hold on;
+plot(marchhour,I_march)
+plot(marchhour,I_b_march)
+plot(marchhour,I_d_march)
+set(gca,'XMinorTick','on','YMinorTick','on')
+ylabel('\fontname{Times}Hourly Radiation [MJ/m^2]','FontSize',12)
+xlabel('\fontname{Times}Hour angle, \omega [deg]','FontSize',12);
+title('\fontname{Times}March Equinox in Houston')
+xlim([-sunset(1) sunset(1)])
+legend('I','I_b','I_d')
+hold off;
+
+figure(3);
+hold on;
+plot(junehour,I_june)
+plot(junehour,I_b_june)
+plot(junehour,I_d_june)
+set(gca,'XMinorTick','on','YMinorTick','on')
+ylabel('\fontname{Times}Hourly Radiation [MJ/m^2]','FontSize',12)
+xlabel('\fontname{Times}Hour angle, \omega [deg]','FontSize',12);
+title('\fontname{Times}Summer Solstice in Houston')
+xlim([-sunset(2) sunset(2)])
+legend('I','I_b','I_d')
+hold off;
+
+figure(4)
+hold on;
+plot(septemberhour,I_sept)
+plot(septemberhour,I_b_sept)
+plot(septemberhour,I_d_sept)
+set(gca,'XMinorTick','on','YMinorTick','on')
+ylabel('\fontname{Times}Hourly Radiation [MJ/m^2]','FontSize',12)
+xlabel('\fontname{Times}Hour angle, \omega [deg]','FontSize',12);
+title('\fontname{Times}September Equinox in Houston')
+xlim([-sunset(3) sunset(3)])
+legend('I','I_b','I_d')
+hold off;
+
+figure(5)
+hold on;
+plot(decemberhour,I_dec)
+plot(decemberhour,I_b_dec)
+plot(decemberhour,I_d_dec)
+set(gca,'XMinorTick','on','YMinorTick','on')
+ylabel('\fontname{Times}Hourly Radiation [MJ/m^2]','FontSize',12)
+xlabel('\fontname{Times}Hour angle, \omega [deg]','FontSize',12);
+title('\fontname{Times}Winter Solstice in Houston')
+xlim([-sunset(4) sunset(4)])
+ylim([0 1.2])
+legend('I','I_b','I_d')
+hold off;
+
+
