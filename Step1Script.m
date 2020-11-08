@@ -16,7 +16,7 @@ meas_sum = 0;                       %sum of measurements so far
 dailyAvgs = [];                     %array of daily average GHI
 L = length(day);                    %length of csv file
 
-DPM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; %days per month
+DPM = [31, , 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; %days per month
 
 %iterate down every row of file
 for row_num = 1:L
