@@ -1,5 +1,5 @@
 clear;
-data = readtable("C:\Users\nickd\OneDrive\Documents\MATLAB\ME5312\MSP_Data.csv");
+data = readtable("E:\2020\ME5312\debugData.csv");
 
 %to calculate monthly average daily solar irradiation,
 %GHI for each day of each month must be totaled
@@ -14,7 +14,7 @@ meas_sum = 0;                       %sum of measurements so far
 dailyAvgs = [];                     %array of daily average GHI
 L = length(day);                    %length of csv file
 
-DPM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; %days per month
+DPM = [31, 30, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; %days per month
 
 %iterate down every row of file
 for row_num = 1:L
@@ -44,7 +44,7 @@ Hbar = []; %%initialize array for montly daily average
 DOY = 1;
 lastAvg = 0;
 monthTracker = 1;
-dayTracker = 0;
+dayTracker = 1;
 runningAvg = 0;
 for avg_num = 1:length(dailyAvgs)    
         runningAvg = runningAvg+dailyAvgs(avg_num);
