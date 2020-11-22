@@ -1,7 +1,7 @@
 % Houston Data
 
 clear;
-data = readtable("C:\Users\nickd\OneDrive\Documents\MATLAB\ME5312\HOU_data.csv");
+data = readtable("C:\Users\brucevang\Documents\MATLAB\ME5312-Project-master\HOU_data.csv");
 
 %to calculate monthly average daily solar irradiation,
 %GHI for each day of each month must be totaled
@@ -16,7 +16,7 @@ meas_sum = 0;                       %sum of measurements so far
 dailyAvgs = [];                     %array of daily average GHI
 L = length(day);                    %length of csv file
 
-DPM = [31, , 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; %days per month
+DPM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]; %days per month
 
 %iterate down every row of file
 for row_num = 1:L
@@ -239,3 +239,143 @@ legend('Location','Northwest')
 set(gca,'XMinorTick','on','YMinorTick','on')
 xlabel('\fontname{Times}Average Hourly Radiation [MJ/m^2]','FontSize',12)
 ylabel('\fontname{Times}Hour','FontSize',12)
+
+%% Step 2 Question 4 - Finding Qu
+%Finding Ibar
+a = .409 + .5016*sind(sunsetangle - 60);
+b = .6609 - .4767*sind(sunsetangle - 60);
+hour_angle = -172.5:15:172.5; %from 12:30 AM to 11:30 PM
+r_t = zeros(length(hour_angle), length(sunsetangle));
+for i = 1:length(hour_angle)
+    for j = 1:length(sunsetangle)
+        r_t(i,j) = (pi/24)*(a(j)+b(j)*cosd(hour_angle(i))) * (cosd(hour_angle(i)) - cosd(sunsetangle(j)))...
+            / (sind(sunsetangle(j)) - (pi*sunsetangle(j)*cosd(sunsetangle(j)))/180);
+        if r_t(i,j) <= 0 %setting all negative values to 0
+            r_t(i,j) = 0;
+        else
+            r_t(i,j) = r_t(i,j);
+        end
+    end
+end
+for i = 1:24
+    for j = 1:12
+        Ibar(i,j) = r_t(i,j)*Hbar(j); %Ibar for the midpoint of each hour in a day for each month
+    end
+end
+
+%Finding kbar_T
+omega1 = -180:15:165;
+omega2 = -165:15:180;
+for i = 1:length(omega1)
+    for j = 1:length(n_avg)
+        Ibar_o(i,j) = 10^(-6)*((12*3600*1367)/pi)*(1 + 0.033*cosd((360*n_avg(j))/365))*(cosd(lat)*cosd(dec(j))*(sind(omega2(i))-sind(omega1(i)))+...
+            (pi*(omega2(i)-omega1(i))*sind(lat)*sind(dec(j))/180));
+        if Ibar_o(i,j) <= 0 %setting all negative values to 0
+            Ibar_o(i,j) = 0;
+        else
+            Ibar_o(i,j) = Ibar_o(i,j);
+        end
+    end
+end
+for i = 1:24
+    for j = 1:12
+        if Ibar_o(i,j) == 0
+            kbar_T(i,j) = 0;
+        else
+            kbar_T(i,j) = Ibar(i,j)/Ibar_o(i,j);
+        end
+    end
+end
+
+%erbs correlation
+for i = 1:24
+    for j = 1:12
+        if kbar_T(i,j) <= .22
+            erbs(i,j) = 1 - .09*kbar_T(i,j);
+            if erbs(i,j) == 1
+                erbs(i,j) = 0;
+            end
+        elseif (kbar_T(i,j) <= .8) && (kbar_T(i,j) > .22)
+            erbs(i,j) = .9511 - .1604*kbar_T(i,j) + 4.388*kbar_T(i,j)^2 - 16.638*kbar_T(i,j)^3 + 12.336*kbar_T(i,j)^4;
+        elseif kbar_T(i,j) > .8
+            erbs(i,j) = .165;
+        end
+    end
+end
+for i = 1:24
+    for j = 1:12
+        Ibar_d(i,j) = Ibar(i,j)*kbar_T(i,j);
+        Ibar_b(i,j) = Ibar(i,j) - Ibar_d(i,j);
+    end
+end
+
+%(UPDATE: Didn't need this in the first place. Only needed Rb.)
+%Finding Ibar_T and subsequently its components
+%To further simplify, set slope = latitude -->
+beta = lat; %Note "beta" is used instead of "slope" since the latter has been used earlier in this code
+for i = 1:24
+    for j = 1:12
+        Rb(i,j) = cosd(lat-beta)*cosd(dec(j))*cosd(hour_angle(i))/(cosd(lat)*cosd(dec(j))*cosd(hour_angle(i))+sind(lat)*sind(dec(j))); 
+        %eqn 1.8.2
+        %i --> midpoint of hour, j given month
+    end
+end
+
+for i = 1:24
+    for j = 1:12
+        Ibar_Tb(i,j) = Ibar_b(i,j)*Rb(i,j); %i --> midpoint of hour, j --> month
+    end
+end
+
+for i = 1:24
+    for j = 1:12
+        Ibar_Td(i,j) = Ibar_d(i,j)*((1+cosd(beta))/2); %i --> midpoint of hour, j --> month
+    end
+end
+
+for i = 1:24
+    for j = 1:12
+        Ibar_Tg(i,j) = Ibar(i,j)*.2*((1-cosd(beta))/2); %i --> midpoint of hour, j --> month
+    end
+end
+
+for i = 1:24
+    for j = 1:12
+        Ibar_T(i,j) = Ibar_Tb(i,j) + Ibar_Td(i,j) + Ibar_Tg(i,j); %i --> midpoint of hour, j --> month
+    end
+end
+
+%FR(taualpha)& FR_UL --> SRCC Data Sheet
+FRtaualpha = .589;
+FR_UL = -3.564;
+
+%Calculate Ibar_T * Kbar_taualpha:
+b_o = -.1881; %attained via linear regression of 1/cos(theta)-1 and K_taualpha (done via Python)
+theta_e_g = 90 - .5788*beta + .002693*beta^2; %eqn 5.4.1
+theta_e_d = 59.7 - .1388*beta + .001497*beta^2; %eqn 5.4.2
+for i = 1:24
+    for j = 1:12
+        theta_e_b(i,j) = acosd(cosd(lat-beta)*cosd(dec(j))*cosd(hour_angle(i))); %eqn 1.6.7, note that the second term on the RHS of the equation cancels out since sin(lat-beta)=0
+    end
+end
+
+%Find K_taualpha for these angles
+K_taualpha_g = 1-.1881*(1/cosd(theta_e_g) - 1);
+K_taualpha_d = 1-.1881*(1/cosd(theta_e_d) - 1);
+for i = 1:24
+    for j = 1:12
+        K_taualpha_b(i,j) = 1-.1881*(1/cosd(theta_e_b(i,j)) - 1);
+    end
+end
+
+for i = 1:24
+    for j = 1:12 
+        Ibar_T_and_Kbar_taualpha(i,j) = Ibar_b(i,j)*Rb(i,j)*K_taualpha_b(i,j) + Ibar_d(i,j)*K_taualpha_d*.5*(1+cosd(beta)) + Ibar(i,j)*.2*K_taualpha_d*.5*(1-cosd(beta));
+    end
+end
+
+%Calculate Qu
+Ac = .944; %SRCC
+%Need inlet and ambient temperature in order to calculate Qu
+%Ambient temperature will probably vary throughout the year, so will have to do calculations for sections of Ibar_T*Kbar_taualpha
+%e.g. j = [4,7] for spring, j = [8,11] for summer, etc...
