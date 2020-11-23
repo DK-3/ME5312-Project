@@ -1,7 +1,7 @@
 % Houston Data
 
 clear;
-data = readtable("C:\Users\brucevang\Documents\MATLAB\ME5312-Project-master\HOU_data.csv");
+data = readtable("C:\Users\brucevang\Documents\MATLAB\ME5312-Project-master\HOU_Data.csv");
 
 %to calculate monthly average daily solar irradiation,
 %GHI for each day of each month must be totaled
@@ -304,13 +304,11 @@ for i = 1:24
 end
 for i = 1:24
     for j = 1:12
-        Ibar_d(i,j) = Ibar(i,j)*kbar_T(i,j);
+        Ibar_d(i,j) = Ibar(i,j)*erbs(i,j);
         Ibar_b(i,j) = Ibar(i,j) - Ibar_d(i,j);
     end
 end
 
-%(UPDATE: Didn't need this in the first place. Only needed Rb.)
-%Finding Ibar_T and subsequently its components
 %To further simplify, set slope = latitude -->
 beta = lat; %Note "beta" is used instead of "slope" since the latter has been used earlier in this code
 for i = 1:24
@@ -318,30 +316,6 @@ for i = 1:24
         Rb(i,j) = cosd(lat-beta)*cosd(dec(j))*cosd(hour_angle(i))/(cosd(lat)*cosd(dec(j))*cosd(hour_angle(i))+sind(lat)*sind(dec(j))); 
         %eqn 1.8.2
         %i --> midpoint of hour, j given month
-    end
-end
-
-for i = 1:24
-    for j = 1:12
-        Ibar_Tb(i,j) = Ibar_b(i,j)*Rb(i,j); %i --> midpoint of hour, j --> month
-    end
-end
-
-for i = 1:24
-    for j = 1:12
-        Ibar_Td(i,j) = Ibar_d(i,j)*((1+cosd(beta))/2); %i --> midpoint of hour, j --> month
-    end
-end
-
-for i = 1:24
-    for j = 1:12
-        Ibar_Tg(i,j) = Ibar(i,j)*.2*((1-cosd(beta))/2); %i --> midpoint of hour, j --> month
-    end
-end
-
-for i = 1:24
-    for j = 1:12
-        Ibar_T(i,j) = Ibar_Tb(i,j) + Ibar_Td(i,j) + Ibar_Tg(i,j); %i --> midpoint of hour, j --> month
     end
 end
 
@@ -371,11 +345,135 @@ end
 for i = 1:24
     for j = 1:12 
         Ibar_T_and_Kbar_taualpha(i,j) = Ibar_b(i,j)*Rb(i,j)*K_taualpha_b(i,j) + Ibar_d(i,j)*K_taualpha_d*.5*(1+cosd(beta)) + Ibar(i,j)*.2*K_taualpha_d*.5*(1-cosd(beta));
+        %Reliable values from 8:30 AM to 5:30 PM (or alternatively from 8 AM to 6 PM)
     end
 end
 
 %Calculate Qu
-Ac = .944; %SRCC
+Ac = .944; %SRCC --> Gross Collector Area
 %Need inlet and ambient temperature in order to calculate Qu
-%Ambient temperature will probably vary throughout the year, so will have to do calculations for sections of Ibar_T*Kbar_taualpha
-%e.g. j = [4,7] for spring, j = [8,11] for summer, etc...
+%assume Ti = 30, 40, 50, degrees F --> 4.44, 10, 15.56 degrees C
+%Assume Ta monthly via TMY data. Do it for the avg day of each month (17th Jan, 16th Feb, 16th Mar, 15 Apr, 15 May, 11 June, 17 July,
+%16 Aug, 15 Sept, 15 Oct, 14 Nov, 10 Dec)
+%Ta will be for i & j indices (midpoint hour & avg day of month)
+Ti = [4.44, 10, 15.56];
+data2 = readtable("C:\Users\brucevang\Documents\MATLAB\ME5312-Project-master\HOU_Data_TMY.csv");
+month2 = data2.Month;
+Temp2 = data2.Temperature;
+Month_Temp = [month2,Temp2];
+%For downloaded TMY data with first two rows deleted (A1 = "Source", A2 = "NSRDB")
+%The average day for each month will correspond to the following rows:
+
+for i = 1:12 %Month (On Avg Day)
+    for j = 1:24 %Midpoint Hour
+        if i == 1
+            Ta1(i,j) = Month_Temp(384+j,2);
+        elseif i == 2 
+            Ta1(i,j) = Month_Temp(1104+j,2);
+        elseif i == 3
+            Ta1(i,j) = Month_Temp(1776+j,2);
+        elseif i == 4
+            Ta1(i,j) = Month_Temp(2496+j,2);
+        elseif i == 5
+            Ta1(i,j) = Month_Temp(3216+j,2);
+        elseif i == 6
+            Ta1(i,j) = Month_Temp(3864+j,2);
+        elseif i == 7
+            Ta1(i,j) = Month_Temp(4728+j,2);
+        elseif i == 8
+            Ta1(i,j) = Month_Temp(5448+j,2);
+        elseif i == 9
+            Ta1(i,j) = Month_Temp(6168+j,2);
+        elseif i == 10
+            Ta1(i,j) = Month_Temp(6888+j,2);
+        elseif i == 11
+            Ta1(i,j) = Month_Temp(7609+j,2);
+        elseif i == 12
+            Ta1(i,j) = Month_Temp(8232+j,2);
+        end
+    end
+end
+
+%Transpose to rearrange into Midpoint Hour rows, Average Day in Month columns
+Ta2 = transpose(Ta1);
+
+%Qu Calculation
+for i = 1:24 %Midpoint Hour
+    for j = 1:12 %Month (On Avg Day)
+        for k = 1:3 %Varying Ti
+            Qu(i,j,k) = Ac*(Ibar_T_and_Kbar_taualpha(i,j)*FRtaualpha - FR_UL*3600*(Ti(k) - Ta2(i,j))/(1e+6));
+            if Qu(i,j,k) < 0 %Set negative Qu values equal to 0 since it's equivalent to having no useful energy
+                Qu(i,j,k) = 0;
+            end
+            %In MJ
+            %Note conversion factors 3600 and 1e+6 are necessary
+        end
+    end
+end
+
+%Qu values are negative for i = [1,7] and i = [18,24] (i.e. from 12 AM to 8 AM and 6 PM to 12 PM)
+%This means that there is no useful energy for these hours
+%Most reliable values from Qu is from i = [8, 17]
+%Therefore, graph values from 8 AM to 7 PM
+%3 Graphs, 1 for each different Ti
+%X-axis Month, Y-Axis Qu, 11 lines for each hour interval (8-9 AM, 9-10 AM, ..., 5-6 PM)
+
+figure(3);
+hold on;
+plot(months, Qu(8,1:12,1))
+plot(months, Qu(9,1:12,1))
+plot(months, Qu(10,1:12,1))
+plot(months, Qu(11,1:12,1))
+plot(months, Qu(12,1:12,1))
+plot(months, Qu(13,1:12,1))
+plot(months, Qu(14,1:12,1))
+plot(months, Qu(15,1:12,1))
+plot(months, Qu(16,1:12,1))
+plot(months, Qu(17,1:12,1))
+legend('8-9 AM','9-10 AM', '10-11 AM','11 AM-12 PM','12-1 PM','1-2 PM','2-3 PM','3-4 PM','4-5 PM','5-6 PM')
+set(gca,'YMinorTick','on')
+xlim([1,12])
+ylim([0,2])
+xlabel('\fontname{Times}Month','FontSize',12)
+ylabel('\fontname{Times}Useful Energy, Qu [MJ]','FontSize',12)
+title('Useful Energy Throughout the Year for Ti = 30 F = 4.44 C')
+
+figure(4);
+hold on;
+plot(months, Qu(8,1:12,2))
+plot(months, Qu(9,1:12,2))
+plot(months, Qu(10,1:12,2))
+plot(months, Qu(11,1:12,2))
+plot(months, Qu(12,1:12,2))
+plot(months, Qu(13,1:12,2))
+plot(months, Qu(14,1:12,2))
+plot(months, Qu(15,1:12,2))
+plot(months, Qu(16,1:12,2))
+plot(months, Qu(17,1:12,2))
+legend('8-9 AM','9-10 AM', '10-11 AM','11 AM-12 PM','12-1 PM','1-2 PM','2-3 PM','3-4 PM','4-5 PM','5-6 PM')
+set(gca,'YMinorTick','on')
+xlim([1,12])
+ylim([0,2])
+xlabel('\fontname{Times}Month','FontSize',12)
+ylabel('\fontname{Times}Useful Energy, Qu [MJ]','FontSize',12)
+title('Useful Energy Throughout the Year for Ti = 40 F = 10 C')
+
+figure(5);
+hold on;
+plot(months, Qu(8,1:12,3))
+plot(months, Qu(9,1:12,3))
+plot(months, Qu(10,1:12,3))
+plot(months, Qu(11,1:12,3))
+plot(months, Qu(12,1:12,3))
+plot(months, Qu(13,1:12,3))
+plot(months, Qu(14,1:12,3))
+plot(months, Qu(15,1:12,3))
+plot(months, Qu(16,1:12,3))
+plot(months, Qu(17,1:12,3))
+legend('8-9 AM','9-10 AM', '10-11 AM','11 AM-12 PM','12-1 PM','1-2 PM','2-3 PM','3-4 PM','4-5 PM','5-6 PM')
+set(gca,'YMinorTick','on')
+xlim([1,12])
+ylim([0,2])
+xlabel('\fontname{Times}Month','FontSize',12)
+ylabel('\fontname{Times}Useful Energy, Qu [MJ]','FontSize',12)
+title('Useful Energy Throughout the Year for Ti = 50 F = 15.56 C')
