@@ -353,7 +353,7 @@ end
 Ac = .944; %SRCC --> Gross Collector Area
 %Need inlet and ambient temperature in order to calculate Qu
 %assume Ti = 30, 40, 50, degrees F --> 4.44, 10, 15.56 degrees C
-%Assume Ta monthly via TMY data. Do it for the avg day of each month (17th Jan, 16th Feb, 16th Mar, 15 Apr, 15 May, 11 June, 17 July,
+%Assume Ta varies monthly via TMY data. Do it for the avg day of each month (17th Jan, 16th Feb, 16th Mar, 15 Apr, 15 May, 11 June, 17 July,
 %16 Aug, 15 Sept, 15 Oct, 14 Nov, 10 Dec)
 %Ta will be for i & j indices (midpoint hour & avg day of month)
 Ti = [4.44, 10, 15.56];
@@ -416,7 +416,7 @@ end
 %Most reliable values from Qu is from i = [8, 17]
 %Therefore, graph values from 8 AM to 7 PM
 %3 Graphs, 1 for each different Ti
-%X-axis Month, Y-Axis Qu, 11 lines for each hour interval (8-9 AM, 9-10 AM, ..., 5-6 PM)
+%X-axis Month, Y-Axis Qu, 10 lines for each hour interval (8-9 AM, 9-10 AM, ..., 5-6 PM)
 
 figure(3);
 hold on;
