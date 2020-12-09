@@ -241,7 +241,7 @@ xlabel('\fontname{Times}Average Hourly Radiation [MJ/m^2]','FontSize',12)
 ylabel('\fontname{Times}Hour','FontSize',12)
 
 %% Step 2 Question 4 - Finding Qu
-%Finding Ibar
+%Finding Ibar via Hbar from Step 1 (method 1)
 a = .409 + .5016*sind(sunsetangle - 60);
 b = .6609 - .4767*sind(sunsetangle - 60);
 hour_angle = -172.5:15:172.5; %from 12:30 AM to 11:30 PM
@@ -257,9 +257,68 @@ for i = 1:length(hour_angle)
         end
     end
 end
+
+%Old Ibar method
+% for i = 1:24
+%     for j = 1:12
+%         Ibar(i,j) = r_t(i,j)*Hbar(j); %Ibar for the midpoint of each hour on the average day of each month
+%     end
+% end
+
+%Ibar from TMY data (method 2)
+data2 = readtable("C:\Users\brucevang\Documents\MATLAB\ME5312-Project-master\HOU_TMY.csv");
+Day2 = data2.Day;
+GHI = data2.GHI;
+Day_GHI = [Day2,GHI];
+
+
+%Getting Ibar by Determining Hbar from TMY data (i.e. H_bar from TMY rather than Step 1 assignment) (different method)
+month2 = data2.Month;
+month_GHI = [month2, GHI];
+
+for i = 1:12 %month
+    if i == 1
+        temp1 = month_GHI(1:744,2);
+        Hbar3(i) = .0036*sum(temp1)/31;
+    elseif i == 2 
+        temp2 = month_GHI(745:1416,2);
+        Hbar3(i) = .0036*sum(temp2)/28;
+    elseif i == 3
+        temp3 = month_GHI(1417:2160,2);
+        Hbar3(i) = .0036*sum(temp3)/31;
+    elseif i == 4
+        temp4 = month_GHI(2161:2880,2);
+        Hbar3(i) = .0036*sum(temp4)/30;
+    elseif i == 5
+        temp5 = month_GHI(2881:3624,2);
+        Hbar3(i) = .0036*sum(temp5)/31;
+    elseif i == 6
+        temp6 = month_GHI(3625:4344,2);
+        Hbar3(i) = .0036*sum(temp6)/30;
+    elseif i == 7
+        temp7 = month_GHI(4345:5088,2);
+        Hbar3(i) = .0036*sum(temp7)/31;
+    elseif i == 8
+        temp8 = month_GHI(5089:5832,2);
+        Hbar3(i) = .0036*sum(temp8)/31; 
+    elseif i == 9
+        temp9 = month_GHI(5833:6552,2);
+        Hbar3(i) = .0036*sum(temp9)/30;
+    elseif i == 10
+        temp10 = month_GHI(6553:7296,2);
+        Hbar3(i) = .0036*sum(temp10)/31;
+    elseif i == 11
+        temp11 = month_GHI(7297:8016,2);
+        Hbar3(i) = .0036*sum(temp11)/30;
+    elseif i == 12
+        temp12 = month_GHI(8017:8760,2);
+        Hbar3(i) = .0036*sum(temp12)/31;
+    end
+end
+
 for i = 1:24
     for j = 1:12
-        Ibar(i,j) = r_t(i,j)*Hbar(j); %Ibar for the midpoint of each hour in a day for each month
+        Ibar(i,j) = r_t(i,j)*Hbar3(j); %Ibar for the midpoint of each hour on the average day of each month
     end
 end
 
@@ -321,7 +380,7 @@ end
 
 %FR(taualpha)& FR_UL --> SRCC Data Sheet
 FRtaualpha = .589;
-FR_UL = -3.564;
+FR_UL = 3.564;
 
 %Calculate Ibar_T * Kbar_taualpha:
 b_o = -.1881; %attained via linear regression of 1/cos(theta)-1 and K_taualpha (done via Python)
@@ -357,8 +416,6 @@ Ac = .944; %SRCC --> Gross Collector Area
 %16 Aug, 15 Sept, 15 Oct, 14 Nov, 10 Dec)
 %Ta will be for i & j indices (midpoint hour & avg day of month)
 Ti = [4.44, 10, 15.56];
-data2 = readtable("C:\Users\brucevang\Documents\MATLAB\ME5312-Project-master\HOU_Data_TMY.csv");
-month2 = data2.Month;
 Temp2 = data2.Temperature;
 Month_Temp = [month2,Temp2];
 %For downloaded TMY data with first two rows deleted (A1 = "Source", A2 = "NSRDB")
